@@ -10,6 +10,7 @@ from tabulate import tabulate
 
 
 def validate_date(date: str | None) -> str | None:
+    """Валидирует дату при вводе в CLI"""
     if date is not None:
         try:
             datetime.strptime(date, "%Y-%m-%d")
@@ -24,6 +25,15 @@ def validate_date(date: str | None) -> str | None:
 
 
 def parse_logs(paths: list[str]) -> Iterator[dict[str, Any]]:
+    """Парсит логи, возвращает итератор из всех строк всех лог-файлов.
+
+    Пустые строки игнорирует.
+    При ошибке декодирования - игнорирует строку и пишет в std.err.
+    При ошибке чтения файла (не существует, ошибка доступа и т.д.) игнорирует
+    файл и пишет в std.err, добавляя вместо этого файла пустой итератор
+    в общий chain.from_iterable.
+    Но если все файлы проигнорированы - выходит из программы и пишет в std.err.
+    """
     ok_files_num = len(paths)
 
     def parse_file(path: str) -> Iterator[dict[str, Any]]:
@@ -59,6 +69,28 @@ def parse_logs(paths: list[str]) -> Iterator[dict[str, Any]]:
 
 
 class ReportBuilder:
+    """Строит отчет по логам.
+
+    В конструктор передаются логи в виде итератора из словарей,
+    название отчета и даты для фильтрации (может быть равна None,
+    тогда фильтрация не производится).
+
+    Вычисления формирующие отчет производятся в момент вызова print_report,
+    который выводит отчет на печать. При повторном вызове make_report
+    использует ранее сформированный отчет.
+
+    Класс можно расширить добавив новые отчеты, их выбор происходит при
+    вызове _make_report внутри класса, где определяется какие будут применены
+    фильтры, какие заголовки будут у отчета.
+
+    Функция _group_average реализует отчет 'average' (на данный момент
+    единственный). При обработке строк игнорируются строки с ошибками
+    при обработке, при этом информация об этих строках выводится в std.err.
+    Отчет average считает средне 'response_time' (в выводе 'avg_response_time')
+    и кол-во запросов (в выводе 'total') по каждому 'url' (в выводе 'handler'),
+    упорядочивает по кол-ву запросов и добавляет столбец с нумерацией с нуля.
+    """
+
     def __init__(self, logs, report_name, date):
         self._logs = logs
         self._report_name = report_name
@@ -74,7 +106,7 @@ class ReportBuilder:
                 )
                 self._report_headers = [
                     "",
-                    "url",
+                    "handler",
                     "total",
                     "avg_response_time",
                 ]
@@ -121,7 +153,12 @@ class ReportBuilder:
         print(tabulate(self._report, headers=self._report_headers))
 
 
-if __name__ == "__main__":
+def main():
+    """Точка входа.
+
+    Парсит аргументы из CLI и валидирует их.
+    Парсит логи, создает экземпляр ReportBuilder и печатает отчет.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--file",
@@ -145,3 +182,7 @@ if __name__ == "__main__":
 
     reporter = ReportBuilder(parsed_logs, args.report, args.date)
     reporter.print_report()
+
+
+if __name__ == "__main__":
+    main()
