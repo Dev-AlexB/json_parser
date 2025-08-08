@@ -1,6 +1,6 @@
 import pytest
 
-from main_v2 import main
+from main import main
 
 
 def test_valid_args(tmp_path, patch_sys_argv, capsys):
