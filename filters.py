@@ -30,7 +30,7 @@ class FilterPipeline:
 
     @staticmethod
     def _contains(log: LogRecord, key: str, value: Any) -> bool:
-        return value in getattr(log, key, "")
+        return value in (getattr(log, key) or "")
 
     def add_equal(self, key: str, value: Any) -> None:
         self._filters.append(partial(self._equal, key=key, value=value))

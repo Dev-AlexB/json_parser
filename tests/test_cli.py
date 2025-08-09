@@ -27,6 +27,28 @@ def test_valid_args(tmp_path, patch_sys_argv, capsys):
     assert "0.1" in output
 
 
+def test_valid_args_date_missing(tmp_path, patch_sys_argv, capsys):
+    log_path = tmp_path / "1.log"
+    log_text = (
+        '{"@timestamp": "2025-06-22T14:10:11+00:00", '
+        '"url": "/a", "response_time": "0.1"}\n'
+        '{"url": "/a", "response_time": "0.3"}\n'
+    )
+    log_path.write_text(log_text)
+    patch_sys_argv(
+        [
+            "main.py",
+            "--file",
+            str(log_path),
+            "--report",
+            "average",
+        ]
+    )
+    main()
+    output = capsys.readouterr().out
+    assert {"/a", "2", "0.2"}.issubset(output.split())
+
+
 def test_missing_required_arg(patch_sys_argv, capsys):
     patch_sys_argv(["main.py", "--file", "1.log", "2.log"])
     with pytest.raises(SystemExit):

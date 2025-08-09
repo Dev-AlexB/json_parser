@@ -19,7 +19,7 @@ def report_factory(report_name: str, logs: Iterator[LogRecord]) -> Report:
     report_class = reports.get(report_name)
     if report_class is None:
         print(
-            f"Неизвестный тип отчета: {report_class}",
+            f"Неизвестный тип отчета: {report_name}",
             file=sys.stderr,
         )
         sys.exit(1)
